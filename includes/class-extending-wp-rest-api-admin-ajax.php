@@ -38,10 +38,11 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin_Ajax' ) ) {
 
 		public function ajax_hello_world() {
 
-			$data = new stdClass();
-			$data->hello = 'world';
-			$data->time = current_time( 'mysql' );
-			wp_send_json( $data );
+			$response = new stdClass();
+			$response->hello = 'world';
+			$response->time = current_time( 'mysql' );
+
+			wp_send_json( $response );
 
 		}
 
