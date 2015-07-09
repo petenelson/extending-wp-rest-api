@@ -12,8 +12,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			$this->add_revision_count_to_posts();
 
-
-
+			add_filter( 'rest_prepare_post', array( $this, 'add_featured_image_link' ), 10, 3 );
 
 		}
 
@@ -66,6 +65,25 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 		public function get_number_of_revisions( $post, $request ) {
 			return absint( wp_get_post_revisions( $post->ID ) );
 		}
+
+
+		public function add_featured_image_link( $data, $post, $request ) {
+
+			if ( has_post_thumbnail( $post->ID ) ) {
+				$featured_image = wp_get_attachment_image_src( get_post_thumbnail_id( $post->ID ), 'full' );
+				$data->add_link( 'featured_image',
+					$featured_image[0],
+					array(
+						'width' => absint( $featured_image[1] ),
+						'height' => absint( $featured_image[2] )
+						)
+					);
+			}
+
+			return $data;
+
+		}
+
 
 
 
