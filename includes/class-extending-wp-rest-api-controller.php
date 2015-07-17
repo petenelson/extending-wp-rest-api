@@ -17,6 +17,22 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 		}
 
 
+		public function plugins_loaded() {
+
+			// enqueue WP_API_Settings script
+			// TODO move this to an admin class
+			add_action( 'wp_print_scripts', function() {
+				if ( is_admin() ) {
+					wp_enqueue_script( 'wp-api' );
+				}
+			} );
+
+			add_filter( 'determine_current_user', array( $this, 'determine_current_user') );
+
+		}
+
+
+
 		public function register_routes() {
 
 			// creating a new route for our hello world exaple
@@ -30,6 +46,21 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 						),
 					),
 			) );
+
+
+			// creating a new route for our hello world exaple
+			register_rest_route( 'api-extend', '/whoami', array(
+				'methods'              => array( WP_REST_Server::READABLE ),
+				'callback'             => array( $this, 'get_whoami' ),
+				'permission_callback'  => 'is_user_logged_in',
+				'args'                 => array(
+					'my-number'           => array(
+						'default'           => 0,
+						'sanitize_callback' => 'absint',
+						),
+					),
+			) );
+
 
 		}
 
@@ -84,6 +115,44 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 		}
 
+
+		public function get_whoami( WP_REST_Request $request ) {
+
+			$response = new stdClass();
+			$response->current_user = null;
+
+			// runs the determine_current_user filter
+			$user = wp_get_current_user();
+			if ( ! empty( $user ) ) {
+				$response->current_user                = new stdClass();
+				$response->current_user->ID            = $user->ID;
+				$response->current_user->login         = $user->user_login;
+				$response->current_user->email         = $user->user_email;
+				$response->current_user->capabilities  = $user->allcaps;
+			}
+
+			return rest_ensure_response( $response );
+		}
+
+
+		public function determine_current_user( $user_id ) {
+
+			if (
+				stripos( $_SERVER['REQUEST_URI'], '/api-extend/whoami' ) > 0 && // make sure this is only for our whoami demo
+
+				'helloworld' === $_REQUEST['api-key'] && // only for a specific API key
+				! empty( $_REQUEST['login'] ) // verify login was passed
+				) {
+
+				$user = get_user_by( 'login', $_REQUEST['login'] );
+				if ( ! empty( $user ) ) {
+					return $user->ID;
+				}
+
+			}
+
+			return $user_id;
+		}
 
 
 
