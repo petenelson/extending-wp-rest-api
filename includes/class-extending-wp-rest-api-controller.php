@@ -27,7 +27,21 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				}
 			} );
 
+			// custom authenication handling
 			add_filter( 'determine_current_user', array( $this, 'determine_current_user') );
+
+			// restrict access to the media endpoint
+			add_action( 'init', function() {
+
+				// _add_extra_api_post_type_arguments() in the WP REST API sets this to true
+				// we'll turn it off for unauthenticated requests
+				// ideally, the GET request would have a filterable permissions check
+
+				global $wp_post_types;
+				$wp_post_types['attachment']->show_in_rest = is_user_logged_in(); // other checks could be added here
+
+
+			}, 20 );
 
 		}
 
