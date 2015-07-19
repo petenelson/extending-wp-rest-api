@@ -53,6 +53,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				return $endpoint;
 			} );
 
+			add_filter( 'rest_pre_serve_request', array( $this, 'multiformat_rest_pre_serve_request' ), 10, 4 );
+
 		}
 
 
@@ -68,6 +70,9 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 						'default'           => 0,
 						'sanitize_callback' => 'absint',
 						),
+					'format'          => array(
+						'sanitize_callback' => 'sanitize_key',
+						)
 					),
 			) );
 
@@ -226,6 +231,41 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			return rest_ensure_response( $response );
 
+		}
+
+
+		public function multiformat_rest_pre_serve_request( $served, $result, $request, $server ) {
+
+			if ( '/api-extend/hello-world' === $request->get_route() ) {
+
+				// this coud also be accomplished with an Accepts header
+				switch ( $request['format'] ) {
+
+					case 'text':
+						// if you needed a CSV, this is where you'd do it
+						header( 'Content-Type: text/plain; charset=' . get_option( 'blog_charset' ) );
+						echo $result->data->hello . ' ';
+						echo $result->data->time;
+						$served = true; // tells the WP-API that we sent the response already
+						break;
+
+					case 'xml': // I guess if you really need to
+						header( 'Content-Type: application/xml; charset=' . get_option( 'blog_charset' )  );
+
+						$xmlDoc = new DOMDocument();
+						$response = $xmlDoc->appendChild( $xmlDoc->createElement( 'Response' ) );
+						$response->appendChild( $xmlDoc->createElement( 'Hello', $result->data->hello ) );
+						$response->appendChild( $xmlDoc->createElement( 'Time', $result->data->time ) );
+
+						echo $xmlDoc->saveXML();
+						$served = true;
+						break;
+
+				}
+			}
+
+
+			return $served;
 		}
 
 	}
