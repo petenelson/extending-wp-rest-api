@@ -43,6 +43,16 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			}, 20 );
 
+			add_filter( 'rest_url_prefix', function( $endpoint ) {
+
+				// if you're changing the endpoint, you'll also need to call flush_rewrite_rules
+				// be sure to cache the custom endpoint and only flush the rules if it is changed
+				//flush_rewrite_rules();
+				//$endpoint = 'wpaustin-json';
+
+				return $endpoint;
+			} );
+
 		}
 
 
