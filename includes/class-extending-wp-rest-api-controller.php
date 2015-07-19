@@ -83,15 +83,31 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			) );
 
 
+			register_rest_route( 'api-extend', '/itsec-lockout', array(
+				'methods'              => array( WP_REST_Server::READABLE ),
+				'callback'             => array( $this, 'get_itsec_lockouts' ),
+			) );
+
+			register_rest_route( 'api-extend', '/itsec-lockout/(?P<id>[\d]+)', array(
+				'methods'              => array( WP_REST_Server::READABLE ),
+				'callback'             => array( $this, 'get_itsec_lockouts' ),
+				'args'                 => array(
+					'id'           => array(
+						'default'           => 0,
+						'sanitize_callback' => 'absint',
+						),
+					),
+			) );
+
 		}
 
 
 		public function get_hello_world( WP_REST_Request $request ) {
 
 			$response = new stdClass();
-			$response->hello = 'world';
-			$response->time = current_time( 'mysql' );
-			$response->my_number= $request['my-number'];
+			$response->hello      = 'world';
+			$response->time       = current_time( 'mysql' );
+			$response->my_number  = $request['my-number'];
 
 			return rest_ensure_response( $response );
 
@@ -183,6 +199,24 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			return rest_ensure_response( $response );
 		}
 
+
+		public function get_itsec_lockouts( WP_REST_Request $request ) {
+
+			// itsec_lockouts
+			global $wpdb;
+
+			$sql = "select * from {$wpdb->prefix}itsec_lockouts where 1";
+
+			if ( ! empty( $request['id'] ) ) {
+				$sql .= $wpdb->prepare( ' and lockout_id = %d' , $request['id'] );
+			}
+
+			$response = new stdClass();
+			$response->lockouts = $wpdb->get_results( $sql );
+
+			return rest_ensure_response( $response );
+
+		}
 
 	}
 
