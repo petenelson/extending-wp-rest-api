@@ -51,7 +51,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			// creating a new route for our hello world exaple
 			register_rest_route( 'api-extend', '/hello-world', array(
-				'methods'             => array( WP_REST_Server::READABLE ),
+				'methods'             => array( WP_REST_Server::METHOD_GET, WP_REST_Server::METHOD_POST, ),
 				'callback'            => array( $this, 'get_hello_world' ),
 				'args'                => array(
 					'my-number'           => array(
@@ -62,7 +62,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			) );
 
 
-			// creating a new route for our hello world exaple
+			// creating a new route for our custom authentication exaple
 			register_rest_route( 'api-extend', '/whoami', array(
 				'methods'              => array( WP_REST_Server::READABLE ),
 				'callback'             => array( $this, 'get_whoami' ),
@@ -73,6 +73,13 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 						'sanitize_callback' => 'absint',
 						),
 					),
+			) );
+
+
+			// creating a new route for our custom authentication exaple
+			register_rest_route( 'wp/v2', '/cron', array(
+				'methods'              => array( WP_REST_Server::READABLE ),
+				'callback'             => array( $this, 'get_crons' ),
 			) );
 
 
@@ -168,6 +175,13 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			return $user_id;
 		}
 
+
+		public function get_crons( WP_REST_Request $request ) {
+			$response = new stdClass();
+			$response->cron_jobs  = _get_cron_array();
+			$response->schedules  = wp_get_schedules();
+			return rest_ensure_response( $response );
+		}
 
 
 	}
