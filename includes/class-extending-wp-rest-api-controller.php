@@ -146,7 +146,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 
 		public function get_number_of_revisions( $post, $request ) {
-			return absint( wp_get_post_revisions( $post->ID ) );
+			return absint( count( wp_get_post_revisions( $post->ID ) ) );
 		}
 
 
