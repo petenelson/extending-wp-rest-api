@@ -150,11 +150,12 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 		}
 
 
-		public function add_featured_image_link( $data, $post, $request ) {
+		public function add_featured_image_link( $result, $post, $request ) {
 
 			if ( has_post_thumbnail( $post->ID ) ) {
 				$featured_image = wp_get_attachment_image_src( get_post_thumbnail_id( $post->ID ), 'full' );
-				$data->add_link( 'featured_image',
+
+				$result->add_link( 'featured_image',
 					$featured_image[0],
 					array(
 						'width' => absint( $featured_image[1] ),
@@ -163,7 +164,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 					);
 			}
 
-			return $data;
+			return $result;
 
 		}
 
