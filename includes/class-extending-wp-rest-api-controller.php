@@ -61,8 +61,10 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 		public function register_routes() {
 
+			$namespace = 'api-extend'; // base endpoint for our custom API
+
 			// creating a new route for our hello world exaple
-			register_rest_route( 'api-extend', '/hello-world', array(
+			register_rest_route( $namespace, '/hello-world', array(
 				'methods'             => array( WP_REST_Server::METHOD_GET, WP_REST_Server::METHOD_POST, ),
 				'callback'            => array( $this, 'get_hello_world' ),
 				'args'                => array(
@@ -78,7 +80,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 
 			// creating a new route for our custom authentication exaple
-			register_rest_route( 'api-extend', '/whoami', array(
+			register_rest_route( $namespace, '/whoami', array(
 				'methods'              => array( WP_REST_Server::READABLE ),
 				'callback'             => array( $this, 'get_whoami' ),
 				'permission_callback'  => 'is_user_logged_in',
@@ -98,12 +100,12 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			) );
 
 
-			register_rest_route( 'api-extend', '/itsec-lockout', array(
+			register_rest_route( $namespace, '/itsec-lockout', array(
 				'methods'              => array( WP_REST_Server::READABLE ),
 				'callback'             => array( $this, 'get_itsec_lockouts' ),
 			) );
 
-			register_rest_route( 'api-extend', '/itsec-lockout/(?P<id>[\d]+)', array(
+			register_rest_route( $namespace, '/itsec-lockout/(?P<id>[\d]+)', array(
 				'methods'              => array( WP_REST_Server::READABLE ),
 				'callback'             => array( $this, 'get_itsec_lockouts' ),
 				'args'                 => array(
@@ -194,7 +196,9 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				stripos( $_SERVER['REQUEST_URI'], '/api-extend/whoami' ) > 0 && // make sure this is only for our whoami demo
 
 				'helloworld' === $_REQUEST['api-key'] && // only for a specific API key
+
 				! empty( $_REQUEST['login'] ) // verify login was passed
+
 				) {
 
 				$user = get_user_by( 'login', $_REQUEST['login'] );
