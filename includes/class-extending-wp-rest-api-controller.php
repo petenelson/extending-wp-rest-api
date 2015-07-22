@@ -20,11 +20,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 		public function plugins_loaded() {
 
 			// enqueue WP_API_Settings script
-			// TODO move this to an admin class
 			add_action( 'wp_print_scripts', function() {
-				if ( is_admin() ) {
-					wp_enqueue_script( 'wp-api' );
-				}
+				wp_enqueue_script( 'wp-api' );
 			} );
 
 			// custom authenication handling
@@ -64,18 +61,52 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			$namespace = 'api-extend'; // base endpoint for our custom API
 
 			// creating a new route for our hello world exaple
-			register_rest_route( $namespace, '/hello-world', array(
-				'methods'             => array( WP_REST_Server::METHOD_GET, WP_REST_Server::METHOD_POST, ),
+			register_rest_route( $namespace, '/v1/hello-world', array(
+				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_hello_world' ),
 				'args'                => array(
-					'my-number'           => array(
-						'default'           => 0,
-						'sanitize_callback' => 'absint',
-						),
 					'format'          => array(
 						'sanitize_callback' => 'sanitize_key',
 						)
 					),
+			) );
+
+			// creating a new route for our hello world exaple
+			// versioning example
+			register_rest_route( $namespace, '/v2/hello-world', array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_hello_world_v2' ),
+				'args'                => array(
+					'format'          => array(
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_key',
+						)
+					),
+			) );
+
+
+			// creating a new route editable route for our hello world exaple
+			// the sanitize and validate callbacks are passed the value, the request, and the name of the parameter ( $value, $request, $key )
+			register_rest_route( $namespace, '/v1/hello-world', array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'update_hello_world' ),
+				'permission_callback' => array( $this, 'update_hello_world_permission_check' ),
+				'args'                => array(
+					'my_number'           => array(
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => array( $this, 'number_is_greater_than_10' ),
+						),
+					)
+			) );
+
+
+			// creating a new route editable route for our hello world exaple
+			// the sanitize and validate callbacks are passed the value, the request, and the name of the parameter ( $value, $request, $key )
+			register_rest_route( $namespace, '/v1/hello-world', array(
+				'methods'             => WP_REST_Server::DELETABLE,
+				'callback'            => array( $this, 'delete_hello_world' ),
+				'permission_callback' => array( $this, 'update_hello_world_permission_check' ),
 			) );
 
 
@@ -116,17 +147,93 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 					),
 			) );
 
+
+			// sample for dynamically generating an image and returning it via the REST API
+			register_rest_route( $namespace, '/billing-period-chart', array(
+				'methods'              => array( WP_REST_Server::READABLE ),
+				'callback'             => array( $this, 'get_chart' ),
+				'args'                 => array(
+					'start'               => array(
+						'required'           => true,
+						'sanitize_callback'  => array( $this, 'to_date_time' ),
+						),
+					'end'                 => array(
+						'required'           => true,
+						'sanitize_callback'  => array( $this, 'to_date_time' ),
+						),
+					'current'             => array(
+						'required'           => true,
+						'sanitize_callback'  => array( $this, 'to_date_time' ),
+						),
+					)
+			) );
+
 		}
 
 
 		public function get_hello_world( WP_REST_Request $request ) {
 
-			$response = new stdClass();
+			$response             = new stdClass();
 			$response->hello      = 'world';
 			$response->time       = current_time( 'mysql' );
-			$response->my_number  = $request['my-number'];
+			$response->my_number  = absint( get_option( '_extending_my_number' ) );
 
 			return rest_ensure_response( $response );
+
+		}
+
+
+		public function get_hello_world_v2( WP_REST_Request $request ) {
+
+			$response             = new stdClass();
+			$response->hello      = 'This is the new and improved endpoint!';
+			$response->my_number  = absint( get_option( '_extending_my_number' ) );
+
+			return rest_ensure_response( $response );
+
+		}
+
+
+		public function update_hello_world_permission_check( WP_REST_Request $request ) {
+			if ( ! current_user_can( 'manage_options' ) ) {
+				// can return false or a custom WP_Error
+				return new WP_Error( 'rest_forbidden', sprintf( 'current user must have manage_options permissions', $value ), array( 'status' => 403 ) );
+			} else {
+				return true;
+			}
+		}
+
+
+		public function number_is_greater_than_10( $value, $request, $key ) {
+			if ( $value <= 10 ) {
+				// can return false or a custom WP_Error
+				return new WP_Error( 'rest_invalid_param', sprintf( '%s %d must be greater than 10', $key, $value ), array( 'status' => 400 ) );
+			} else {
+				return true;
+			}
+		}
+
+
+		public function update_hello_world( WP_REST_Request $request ) {
+
+			// because permissions, sanitation, and validation have already been taken care of,
+			// we can start working with our data right away
+
+			// update our example with whatever was passed by the user
+			update_option( '_extending_my_number', $request['my_number'] );
+
+			// return the updated object
+			return $this->get_hello_world( $request );
+
+		}
+
+
+		public function delete_hello_world( WP_REST_Request $request ) {
+
+			delete_option( '_extending_my_number' );
+
+			// return the updated object
+			return $this->get_hello_world( $request );
 
 		}
 
@@ -241,7 +348,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 		public function multiformat_rest_pre_serve_request( $served, $result, $request, $server ) {
 
-			if ( '/api-extend/hello-world' === $request->get_route() ) {
+			if ( in_array( $request->get_route(), array( '/api-extend/v1/hello-world', '/api-extend/v2/hello-world' ) ) ) {
 
 				// this coud also be accomplished with an Accepts header
 				switch ( $request['format'] ) {
@@ -250,7 +357,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 						// if you needed a CSV, this is where you'd do it
 						header( 'Content-Type: text/plain; charset=' . get_option( 'blog_charset' ) );
 						echo $result->data->hello . ' ';
-						echo $result->data->time;
+						echo $result->data->time . ' ';
+						echo $result->data->my_number;
 						$served = true; // tells the WP-API that we sent the response already
 						break;
 
@@ -261,17 +369,108 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 						$response = $xmlDoc->appendChild( $xmlDoc->createElement( 'Response' ) );
 						$response->appendChild( $xmlDoc->createElement( 'Hello', $result->data->hello ) );
 						$response->appendChild( $xmlDoc->createElement( 'Time', $result->data->time ) );
+						$response->appendChild( $xmlDoc->createElement( 'My_Number', $result->data->my_number ) );
 
 						echo $xmlDoc->saveXML();
 						$served = true;
 						break;
 
 				}
+
+			}
+
+
+			if ( '/api-extend/billing-period-chart' === $request->get_route() ) {
+
+				// because we returned the image generator class to the API, we can access the
+				// image it generated and return it to the browser
+				header('Content-type: image/png');
+				imagepng($result->data->im);
+				imagedestroy($result->data->im);
+
+				$served = true;
+
 			}
 
 
 			return $served;
 		}
+
+
+		public function to_date_time( $value ) {
+			return new DateTime( $value );
+		}
+
+
+		public function get_chart( WP_REST_Request $request ) {
+
+			// https://www.greenmountainenergy.com/api/?api-action=billing-period-chart&s=2014-11-13&e=2014-12-15&c=2014-11-25
+			// http://local.baconipsum.dev/wp-json/api-extend/chart?start=2015-02-01&end=2015-04-25&current=2015-03-09
+
+			require_once 'class-pn-date-progress-chart.php';
+
+			$start = $request['start'];
+			$end = $request['end'];
+			$current = $request['current'];
+
+			$dateChart = new pn_date_progress_chart();
+			$dateChart->init();
+
+
+			// vertical grey line to the left of the blue bar
+			$dateChart->draw_line($dateChart->bar_start-1, 1, $dateChart->bar_start-1, $dateChart->bottom_line_y);
+
+			// horizontal grey line to the bottom of the blue bar
+			$dateChart->draw_line($dateChart->bar_start-1, $dateChart->bottom_line_y, $dateChart->bar_end, $dateChart->bottom_line_y);
+
+			// start date tick
+			$dateChart->draw_line($dateChart->bar_start-1, $dateChart->bottom_line_y, $dateChart->bar_start-1, $dateChart->bottom_line_y + $dateChart->tick_height);
+
+
+			// end date tick
+			$dateChart->draw_line($dateChart->bar_end, $dateChart->bottom_line_y, $dateChart->bar_end, $dateChart->bottom_line_y + $dateChart->tick_height);
+
+
+			// draw start date
+			$dateChart->draw_date($start, $dateChart->bar_start-1);
+
+			// draw end date
+			$dateChart->draw_date($end, $dateChart->bar_end);
+
+			// figure out how far into the date range we are and draw a progress bar accordingly
+			$total_days = date_diff($start, $end)->days;
+			$days_into_range = date_diff($start, $current)->days;
+			$percent_into_range = $days_into_range / $total_days;
+
+			// draw ticks at 25%, 50%, 75%
+			$percent_ticks_x = [];
+			for ($i = .25; $i <= .75 ; $i += .25)
+				$percent_ticks_x[] = $dateChart->bar_start + floor($dateChart->bar_max_width * $i);
+
+
+
+			foreach ($percent_ticks_x as $p)
+				$dateChart->draw_line($p, $dateChart->bottom_line_y, $p, $dateChart->bottom_line_y + $dateChart->tick_height);
+
+
+			// create dates for 25%, 50% and 75%
+			$percent_date = [];
+			for ($i = .25; $i <= .75 ; $i += .25) {
+				$percent_date[] = date_add(clone $start, new DateInterval('P' . floor($total_days * $i) . 'D'));
+			}
+
+
+			// draw dates at 25%, 50%, 75%
+			for ($i=0; $i < 3; $i++)
+				$dateChart->draw_date($percent_date[$i], $percent_ticks_x[$i]);
+
+			$dateChart->draw_progress_bar($percent_into_range);
+
+			return $dateChart;
+
+
+		}
+
 
 	}
 
