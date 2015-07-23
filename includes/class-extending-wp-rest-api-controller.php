@@ -14,6 +14,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			add_filter( 'rest_prepare_post', array( $this, 'add_featured_image_link' ), 10, 3 );
 
+			add_filter( 'rest_pre_dispatch', array( $this, 'disallow_non_ssl' ), 10, 3 );
+
 		}
 
 
@@ -169,6 +171,17 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			) );
 
 		}
+
+
+		public function disallow_non_ssl( $response, $server, $request ) {
+
+			if ( ! is_ssl() ) {
+				$response = new WP_Error( 'rest_forbidden', __( "SSL is required to access the REST API" ), array( 'status' => 403 ) );
+			}
+
+			return $response;
+		}
+
 
 
 		public function get_hello_world( WP_REST_Request $request ) {
