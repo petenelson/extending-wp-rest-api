@@ -77,22 +77,9 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 					),
 			) );
 
-			// creating a new route for our hello world exaple
-			// versioning example
-			register_rest_route( $namespace, '/v2/hello-world', array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $this, 'get_hello_world_v2' ),
-				'args'                => array(
-					'format'          => array(
-						'required'          => true,
-						'sanitize_callback' => 'sanitize_key',
-						)
-					),
-			) );
-
-
 			// creating a new route editable route for our hello world exaple
-			// the sanitize and validate callbacks are passed the value, the request, and the name of the parameter ( $value, $request, $key )
+			// the sanitize and validate callbacks are passed the value, the request,
+			// and the name of the parameter ( $value, $request, $key )
 			register_rest_route( $namespace, '/v1/hello-world', array(
 				'methods'             => WP_REST_Server::EDITABLE,
 				'callback'            => array( $this, 'update_hello_world' ),
@@ -104,6 +91,20 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 						'validate_callback' => array( $this, 'number_is_greater_than_10' ),
 						),
 					)
+			) );
+
+
+			// creating a new route for our hello world exaple
+			// versioning example
+			register_rest_route( $namespace, '/v2/hello-world', array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_hello_world_v2' ),
+				'args'                => array(
+					'format'          => array(
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_key',
+						)
+					),
 			) );
 
 
