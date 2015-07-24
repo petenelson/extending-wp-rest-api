@@ -16,6 +16,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			add_filter( 'rest_pre_dispatch', array( $this, 'disallow_non_ssl' ), 10, 3 );
 
+			add_filter( 'rest_dispatch_request', array( $this, 'disable_media_endpoint'), 10, 2 );
+
 		}
 
 
@@ -36,8 +38,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				// we'll turn it off for unauthenticated requests
 				// ideally, the GET request would have a filterable permissions check
 
-				global $wp_post_types;
-				$wp_post_types['attachment']->show_in_rest = is_user_logged_in(); // other checks could be added here
+				//global $wp_post_types;
+				//$wp_post_types['attachment']->show_in_rest = is_user_logged_in(); // other checks could be added here
 
 
 			}, 20 );
@@ -53,6 +55,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			} );
 
 			add_filter( 'rest_pre_serve_request', array( $this, 'multiformat_rest_pre_serve_request' ), 10, 4 );
+
+			add_filter( 'rest_url', array( $this, 'force_https_rest_url'), 10, 4 );
 
 		}
 
@@ -182,6 +186,20 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			return $response;
 		}
 
+
+		public function force_https_rest_url( $url, $path, $blog_id, $scheme ) {
+			return set_url_scheme( $url, 'https' ); // force the Link header to be https
+		}
+
+
+		public function disable_media_endpoint( $response, $request ) {
+
+			if ( false !== stripos( $request->get_route(), 'wp/v2/media' ) ) {
+				$response = new WP_Error( 'rest_forbidden', __( "Sorry, the media endpoint is temporarily disabled." ), array( 'status' => 403 ) );
+			}
+
+			return $response;
+		}
 
 
 		public function get_hello_world( WP_REST_Request $request ) {
