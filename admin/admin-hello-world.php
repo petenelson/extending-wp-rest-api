@@ -13,13 +13,11 @@
 
 
 	<p>
-		<fieldset class="extend-json">
-			<legend>JSON Data</legend>
+		<div class="postbox">
+			<h3 class=""><span>Response</span></h3>
+			<div class="inside visible"><pre><code></code></pre></div>
+		</div>
 
-			<div class="json-data">
-			</div>
-
-		</fieldset>
 	</p>
 
 
@@ -27,4 +25,5 @@
 
 <style>
 	p.submit { display: none; }
+	.postbox h3 { padding: 0 1em; }
 </style>

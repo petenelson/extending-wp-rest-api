@@ -239,6 +239,11 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin' ) ) {
 				case 'hello-world';
 					include_once 'admin-hello-world.php';
 					wp_enqueue_script( 'extending-wp-resi-api', plugin_dir_url( __FILE__ ) . '/admin-hello-world.js', 'jquery', time(), true );
+
+					// https://highlightjs.org/
+					wp_enqueue_script( 'highlight-js', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.6/highlight.min.js' );
+					wp_enqueue_style( 'highlight-js', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.6/styles/default.min.css' );
+
 					break;
 			}
 
