@@ -236,9 +236,10 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin' ) ) {
 		public function section_header( $args ) {
 
 			switch ( $args['id'] ) {
-			case 'help';
-				include_once 'admin-help.php';
-				break;
+				case 'hello-world';
+					include_once 'admin-hello-world.php';
+					wp_enqueue_script( 'extending-wp-resi-api', plugin_dir_url( __FILE__ ) . '/admin-hello-world.js', 'jquery', time(), true );
+					break;
 			}
 
 			if ( !empty( $output ) ) {
