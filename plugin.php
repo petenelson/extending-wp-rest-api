@@ -19,4 +19,4 @@ add_action( 'rest_api_init', array( $api_controller, 'rest_api_init') );
 add_action( 'plugins_loaded', array( $api_controller, 'plugins_loaded') );
 
 $admin = new Extending_WP_REST_API_Admin();
-add_action( 'plugins_loaded', array( $admin, 'plugins_loaded') );
+add_action( 'plugins_loaded', array( $admin, 'plugins_loaded'), 5 );
