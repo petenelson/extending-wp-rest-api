@@ -10,11 +10,21 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			$this->register_routes();
 
-			$this->add_revision_count_to_posts();
+			if ( extending_wp_rest_api_setting_enabled( 'add-revision-count' ) ) {
+				$this->add_revision_count_to_posts();
+			}
 
-			add_filter( 'rest_prepare_post', array( $this, 'add_featured_image_link' ), 10, 3 );
+			if ( extending_wp_rest_api_setting_enabled( 'add-featured-image' ) ) {
+				add_filter( 'rest_prepare_post', array( $this, 'add_featured_image_link' ), 10, 3 );
+			}
 
-			add_filter( 'rest_pre_dispatch', array( $this, 'disallow_non_ssl' ), 10, 3 );
+			if ( extending_wp_rest_api_setting_enabled( 'disallow-non-ssl' ) ) {
+				add_filter( 'rest_pre_dispatch', array( $this, 'disallow_non_ssl' ), 10, 3 );
+			}
+
+			if ( extending_wp_rest_api_setting_enabled( 'disable-media-endpoint' ) ) {
+				add_filter( 'rest_dispatch_request', array( $this, 'disable_media_endpoint'), 10, 2 );
+			}
 
 		}
 
@@ -26,33 +36,53 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				wp_enqueue_script( 'wp-api' );
 			} );
 
+			// you can ignore the extending_wp_rest_api_setting_enabled() calls, it's just for the code demo
+
 			// custom authenication handling
-			add_filter( 'determine_current_user', array( $this, 'determine_current_user') );
+			if ( extending_wp_rest_api_setting_enabled( 'determine-current-user' ) ) {
+				add_filter( 'determine_current_user', array( $this, 'determine_current_user') );
+			}
 
 			// restrict access to the media endpoint
-			add_action( 'init', function() {
+			if ( extending_wp_rest_api_setting_enabled( 'restrict-media-endpoint' ) ) {
 
-				// _add_extra_api_post_type_arguments() in the WP REST API sets this to true
-				// we'll turn it off for unauthenticated requests
-				// ideally, the GET request would have a filterable permissions check
+				add_action( 'init', function() {
 
-				global $wp_post_types;
-				$wp_post_types['attachment']->show_in_rest = is_user_logged_in(); // other checks could be added here
+					// _add_extra_api_post_type_arguments() in the WP REST API sets this to true
+					// we'll turn it off for unauthenticated requests
+					// ideally, the GET request would have a filterable permissions check
+
+					global $wp_post_types;
+					$wp_post_types['attachment']->show_in_rest = is_user_logged_in(); // other checks could be added here
 
 
-			}, 20 );
+				}, 20 );
+
+			}
+
 
 			add_filter( 'rest_url_prefix', function( $endpoint ) {
 
-				// if you're changing the endpoint, you'll also need to call flush_rewrite_rules
-				// be sure to cache the custom endpoint and only flush the rules if it is changed
-				//flush_rewrite_rules();
-				//$endpoint = 'wpaustin-json';
+				if ( extending_wp_rest_api_setting_enabled( 'change-url-prefix' ) ) {
+					// if you're changing the endpoint, you'll also need to call flush_rewrite_rules
+					// be sure to cache the custom endpoint and only flush the rules if it is changed
+					$endpoint = 'awesome-api';
+				}
+
+				if ( $endpoint !== get_option( 'extend_api_endpoint' ) ) {
+					flush_rewrite_rules();
+					update_option( 'extend_api_endpoint', $endpoint );
+				}
 
 				return $endpoint;
 			} );
 
 			add_filter( 'rest_pre_serve_request', array( $this, 'multiformat_rest_pre_serve_request' ), 10, 4 );
+
+
+			if ( extending_wp_rest_api_setting_enabled( 'force-ssl-endpoint' ) ) {
+				add_filter( 'rest_url', array( $this, 'force_https_rest_url'), 10, 4 );
+			}
 
 		}
 
@@ -73,6 +103,24 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 					),
 			) );
 
+			// creating a new route editable route for our hello world exaple
+			// the sanitize and validate callback functions are passed the value, the request,
+			// and the name of the parameter ( $value, $request, $key )
+			register_rest_route( $namespace, '/v1/hello-world', array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'update_hello_world' ),
+				'permission_callback' => array( $this, 'update_hello_world_permission_check' ),
+				'args'                => array(
+					'my_number'           => array(
+						'required'          => true,
+						'default'           => 10,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => array( $this, 'number_is_greater_than_10' ),
+						),
+					)
+			) );
+
+
 			// creating a new route for our hello world exaple
 			// versioning example
 			register_rest_route( $namespace, '/v2/hello-world', array(
@@ -84,22 +132,6 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 						'sanitize_callback' => 'sanitize_key',
 						)
 					),
-			) );
-
-
-			// creating a new route editable route for our hello world exaple
-			// the sanitize and validate callbacks are passed the value, the request, and the name of the parameter ( $value, $request, $key )
-			register_rest_route( $namespace, '/v1/hello-world', array(
-				'methods'             => WP_REST_Server::EDITABLE,
-				'callback'            => array( $this, 'update_hello_world' ),
-				'permission_callback' => array( $this, 'update_hello_world_permission_check' ),
-				'args'                => array(
-					'my_number'           => array(
-						'required'          => true,
-						'sanitize_callback' => 'absint',
-						'validate_callback' => array( $this, 'number_is_greater_than_10' ),
-						),
-					)
 			) );
 
 
@@ -183,6 +215,20 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 		}
 
 
+		public function force_https_rest_url( $url, $path, $blog_id, $scheme ) {
+			return set_url_scheme( $url, 'https' ); // force the Link header to be https
+		}
+
+
+		public function disable_media_endpoint( $response, $request ) {
+
+			if ( false !== stripos( $request->get_route(), 'wp/v2/media' ) ) {
+				$response = new WP_Error( 'rest_forbidden', __( "Sorry, the media endpoint is temporarily disabled." ), array( 'status' => 403 ) );
+			}
+
+			return $response;
+		}
+
 
 		public function get_hello_world( WP_REST_Request $request ) {
 
@@ -210,7 +256,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 		public function update_hello_world_permission_check( WP_REST_Request $request ) {
 			if ( ! current_user_can( 'manage_options' ) ) {
 				// can return false or a custom WP_Error
-				return new WP_Error( 'rest_forbidden', sprintf( 'current user must have manage_options permissions', $value ), array( 'status' => 403 ) );
+				return new WP_Error( 'rest_forbidden',
+					sprintf( 'current user must have manage_options permissions', $value ), array( 'status' => 403 ) );
 			} else {
 				return true;
 			}
@@ -220,7 +267,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 		public function number_is_greater_than_10( $value, $request, $key ) {
 			if ( $value <= 10 ) {
 				// can return false or a custom WP_Error
-				return new WP_Error( 'rest_invalid_param', sprintf( '%s %d must be greater than 10', $key, $value ), array( 'status' => 400 ) );
+				return new WP_Error( 'rest_invalid_param',
+					sprintf( '%s %d must be greater than 10', $key, $value ), array( 'status' => 400 ) );
 			} else {
 				return true;
 			}
@@ -312,15 +360,18 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 		public function determine_current_user( $user_id ) {
 
+			if ( ! extending_wp_rest_api_setting_enabled( 'determine-current-user' ) ) {
+				return $user_id;
+			}
+
+
 			if (
 				stripos( $_SERVER['REQUEST_URI'], '/api-extend/whoami' ) > 0 && // make sure this is only for our whoami demo
-
 				'helloworld' === $_REQUEST['api-key'] && // only for a specific API key
-
 				! empty( $_REQUEST['login'] ) // verify login was passed
-
 				) {
 
+				// this request is allowed to impersonate anyone
 				$user = get_user_by( 'login', $_REQUEST['login'] );
 				if ( ! empty( $user ) ) {
 					return $user->ID;
