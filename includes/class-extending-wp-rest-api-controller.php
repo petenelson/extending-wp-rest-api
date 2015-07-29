@@ -403,11 +403,43 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			}
 
 			$response = new stdClass();
-			$response->lockouts = $wpdb->get_results( $sql );
+			$response->lockouts = array();
+
+			$lockouts = $wpdb->get_results( $sql );
+
+			foreach ( $lockouts as $lockout ) {
+
+				// wrap lockout in a response
+				$lockout = rest_ensure_response( $lockout );
+
+				// add a link back to the entry
+				$lockout->add_link( 'self', rest_url( '/api-extend/itsec-lockout/' . absint( $lockout->data->lockout_id ) ) );
+
+				// this needs to be done for the _links to work properly
+				$response->lockouts[] = $this->prepare_response_for_collection( $lockout );
+
+			}
 
 			return rest_ensure_response( $response );
 
 		}
+
+
+		private function prepare_response_for_collection( $response ) {
+			// copied from the WP_REST_Controller class
+			if ( ! ( $response instanceof WP_REST_Response ) ) {
+				return $response;
+			}
+
+			$data = (array) $response->get_data();
+			$links = WP_REST_Server::get_response_links( $response );
+			if ( ! empty( $links ) ) {
+				$data['_links'] = $links;
+			}
+
+			return $data;
+		}
+
 
 
 		public function multiformat_rest_pre_serve_request( $served, $result, $request, $server ) {
