@@ -149,12 +149,6 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				'methods'              => array( WP_REST_Server::READABLE ),
 				'callback'             => array( $this, 'get_whoami' ),
 				'permission_callback'  => 'is_user_logged_in',
-				'args'                 => array(
-					'my-number'           => array(
-						'default'           => 0,
-						'sanitize_callback' => 'absint',
-						),
-					),
 			) );
 
 
@@ -364,7 +358,6 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				return $user_id;
 			}
 
-
 			if (
 				stripos( $_SERVER['REQUEST_URI'], '/api-extend/whoami' ) > 0 && // make sure this is only for our whoami demo
 				'helloworld' === $_REQUEST['api-key'] && // only for a specific API key
@@ -374,7 +367,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				// this request is allowed to impersonate anyone
 				$user = get_user_by( 'login', $_REQUEST['login'] );
 				if ( ! empty( $user ) ) {
-					return $user->ID;
+					$user_id = $user->ID;
 				}
 
 			}
