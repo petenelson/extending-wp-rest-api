@@ -49,8 +49,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin' ) ) {
 			add_settings_field( 'add-revision-count', __( 'Add Revision Count to Posts', 'extending-wp-rest-api' ), array( $this, 'settings_yes_no' ), $key, $section,
 				array( 'key' => $key, 'name' => 'add-revision-count', ) );
 
-			add_settings_field( 'add-featued-image', __( 'Add Featured Image to Posts', 'extending-wp-rest-api' ), array( $this, 'settings_yes_no' ), $key, $section,
-				array( 'key' => $key, 'name' => 'add-featued-image', ) );
+			add_settings_field( 'add-featured-image', __( 'Add Featured Image to Posts', 'extending-wp-rest-api' ), array( $this, 'settings_yes_no' ), $key, $section,
+				array( 'key' => $key, 'name' => 'add-featured-image', ) );
 
 			add_settings_field( 'determine-current-user', __( 'Determine Current User Demo', 'extending-wp-rest-api' ), array( $this, 'settings_yes_no' ), $key, $section,
 				array( 'key' => $key, 'name' => 'determine-current-user', ) );
