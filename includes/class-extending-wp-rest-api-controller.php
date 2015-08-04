@@ -24,6 +24,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			if ( extending_wp_rest_api_setting_enabled( 'disable-media-endpoint' ) ) {
 				add_filter( 'rest_dispatch_request', array( $this, 'disable_media_endpoint'), 10, 2 );
+
 			}
 
 		}
@@ -217,7 +218,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 		public function disable_media_endpoint( $response, $request ) {
 
 			if ( false !== stripos( $request->get_route(), 'wp/v2/media' ) ) {
-				$response = new WP_Error( 'rest_forbidden', __( "Sorry, the media endpoint is temporarily disabled." ), array( 'status' => 403 ) );
+				$response = new WP_Error( 'rest_forbidden', __( "Sorry, the media endpoint is temporarily disabled." ),
+					array( 'status' => 403 ) );
 			}
 
 			return $response;
@@ -402,37 +404,15 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			foreach ( $lockouts as $lockout ) {
 
-				// wrap lockout in a response
-				$lockout = rest_ensure_response( $lockout );
-
-				// add a link back to the entry
-				$lockout->add_link( 'self', rest_url( '/api-extend/itsec-lockout/' . absint( $lockout->data->lockout_id ) ) );
-
-				// this needs to be done for the _links to work properly
-				$response->lockouts[] = $this->prepare_response_for_collection( $lockout );
+				// add a link to the individual entry
+				$lockout->_links = array( 'self' => array( 'href' => rest_url( '/api-extend/itsec-lockout/' . absint( $lockout->lockout_id ) ) ) );
+				$response->lockouts[] = $lockout;
 
 			}
 
 			return rest_ensure_response( $response );
 
 		}
-
-
-		private function prepare_response_for_collection( $response ) {
-			// copied from the WP_REST_Controller class
-			if ( ! ( $response instanceof WP_REST_Response ) ) {
-				return $response;
-			}
-
-			$data = (array) $response->get_data();
-			$links = WP_REST_Server::get_response_links( $response );
-			if ( ! empty( $links ) ) {
-				$data['_links'] = $links;
-			}
-
-			return $data;
-		}
-
 
 
 		public function multiformat_rest_pre_serve_request( $served, $result, $request, $server ) {
