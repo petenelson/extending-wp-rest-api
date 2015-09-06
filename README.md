@@ -1,5 +1,5 @@
 # Extending the WP REST API
-Sample code for extending the WordPress REST API
+Sample code for extending the [WordPress REST API](https://wordpress.org/plugins/rest-api/).  [Slides are also available](https://docs.google.com/presentation/d/1o4gJnEcq1vbDUsjZu_zRfh8D7crxzU45gTCquZOFODw/pub?start=false&loop=false&delayms=3000)
 
 
 ## Examples in this Code
