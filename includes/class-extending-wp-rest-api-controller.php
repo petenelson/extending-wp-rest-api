@@ -129,7 +129,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				'callback'            => array( $this, 'get_hello_world_v2' ),
 				'args'                => array(
 					'format'          => array(
-						'required'          => true,
+						'required'          => false,
+						'default'           => 'json',
 						'sanitize_callback' => 'sanitize_key',
 						)
 					),
