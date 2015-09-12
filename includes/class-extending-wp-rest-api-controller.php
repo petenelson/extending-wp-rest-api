@@ -547,7 +547,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 
 		/**
-		 * Unsets all core WP endpoints registered by the WordPress REST API
+		 * Unsets all core WP endpoints registered by the WordPress REST API (via rest_endpoints filter)
 		 * @param  array   $endpoints   registered endpoints
 		 * @return array
 		 */
