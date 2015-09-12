@@ -24,8 +24,12 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			if ( extending_wp_rest_api_setting_enabled( 'disable-media-endpoint' ) ) {
 				add_filter( 'rest_dispatch_request', array( $this, 'disable_media_endpoint'), 10, 2 );
-
 			}
+
+			if ( extending_wp_rest_api_setting_enabled( 'remove-wordpress-core' ) ) {
+				add_filter( 'rest_endpoints', array( $this, 'remove_wordpress_core_endpoints'), 10, 1 );
+			}
+
 
 		}
 
@@ -539,6 +543,23 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			return $dateChart;
 
 
+		}
+
+
+		/**
+		 * Unsets all core WP endpoints registered by the WordPress REST API
+		 * @param  array   $endpoints   registered endpoints
+		 * @return array
+		 */
+		public function remove_wordpress_core_endpoints( $endpoints ) {
+
+			foreach ( array_keys( $endpoints ) as $endpoint ) {
+				if ( stripos( $endpoint, '/wp/v2' ) === 0 ) {
+					unset( $endpoints[ $endpoint ] );
+				}
+			}
+
+			return $endpoints;
 		}
 
 

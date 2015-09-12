@@ -69,6 +69,10 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin' ) ) {
 
 			add_settings_field( 'disable-media-endpoint', __( 'Disable Media Endpoint', 'extending-wp-rest-api' ), array( $this, 'settings_yes_no' ), $key, $section,
 				array( 'key' => $key, 'name' => 'disable-media-endpoint', ) );
+
+			add_settings_field( 'remove-wordpess-core', __( 'Remove WordPress Core', 'extending-wp-rest-api' ), array( $this, 'settings_yes_no' ), $key, $section,
+				array( 'key' => $key, 'name' => 'remove-wordpress-core', ) );
+
 		}
 
 		private function register_hello_world() {
