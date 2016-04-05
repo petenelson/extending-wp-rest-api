@@ -202,6 +202,12 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 					)
 			) );
 
+			register_rest_route( $namespace, '/remote-sizes', array(
+				'methods'              => array( WP_REST_Server::READABLE ),
+				'callback'             => array( $this, 'get_remote_sizes' ),
+				)
+			);
+
 		}
 
 
@@ -237,6 +243,9 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			$response->hello      = 'world';
 			$response->time       = current_time( 'mysql' );
 			$response->my_number  = absint( get_option( '_extending_my_number' ) );
+
+			$response->some_html  = '<strong>Hello</strong> <em>World</em>';
+
 
 			return rest_ensure_response( $response );
 
@@ -562,6 +571,42 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			return $endpoints;
 		}
 
+		public function get_remote_sizes() {
+
+			// a basic example of logging results from API requests to other servers
+
+			$args = array(
+				'time'                  => current_time( 'mysql' ),
+				'ip_address'            => filter_input( INPUT_SERVER, 'REMOTE_ADDR', FILTER_SANITIZE_STRING ),
+				'route'                 => '/wp-json/dashboard-directory-size/v1/sizes',
+				'source'                => 'petenelson.io REST API',
+				'method'                => 'GET',
+				'status'                => 0,
+				'request'               => array(
+					'body'                 => '',
+					),
+				'response'               => array(
+					'body'                 => '',
+					),
+				'milliseconds'          => 0,
+				);
+
+			$remote_results = wp_remote_get( 'https://petenelson.io/wp-json/dashboard-directory-size/v1/sizes' );
+
+			$args['response']['headers'] = wp_remote_retrieve_headers( $remote_results );
+			$args['status'] = wp_remote_retrieve_response_code( $remote_results );
+
+			$data =  json_decode( wp_remote_retrieve_body( $remote_results ) );
+
+			$args['response']['body'] = $data;
+
+			do_action( 'wp-rest-api-log-insert', $args );
+
+			$data = wp_list_pluck( $data, 'path' );
+
+			return rest_ensure_response( $data  );
+
+		}
 
 	}
 
