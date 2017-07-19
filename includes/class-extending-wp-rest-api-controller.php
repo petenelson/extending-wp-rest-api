@@ -375,7 +375,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			}
 
 			if (
-				stripos( $_SERVER['REQUEST_URI'], '/api-extend/whoami' ) > 0 && // make sure this is only for our whoami demo
+				false !== stripos( $_SERVER['REQUEST_URI'], '/api-extend/whoami' ) && // make sure this is only for our whoami demo
 				'helloworld' === $_REQUEST['api-key'] && // only for a specific API key
 				! empty( $_REQUEST['login'] ) // verify login was passed
 				) {
