@@ -38,7 +38,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin' ) ) {
 
 		private function register_general_settings() {
 			$key = $this->settings_key_general;
-			$this->plugin_settings_tabs[$key] = esc_html__( 'General', 'extending-wp-rest-api' );
+			$this->plugin_settings_tabs[ $key ] = esc_html__( 'General', 'extending-wp-rest-api' );
 
 			register_setting( $key, $key );
 
@@ -77,7 +77,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin' ) ) {
 
 		private function register_hello_world() {
 			$key = $this->settings_key_hello_world;
-			$this->plugin_settings_tabs[$key] =  esc_html__( 'Hello World', 'extending-wp-rest-api' );
+			$this->plugin_settings_tabs[ $key ] =  esc_html__( 'Hello World', 'extending-wp-rest-api' );
 
 			register_setting( $key, $key );
 
@@ -174,7 +174,15 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin' ) ) {
 			echo '<h2>' . esc_html__( 'Extending WP REST API Settings', 'extending-wp-rest-api' ) . '</h2><h2 class="nav-tab-wrapper">';
 			foreach ( $this->plugin_settings_tabs as $tab_key => $tab_caption ) {
 				$active = $current_tab == $tab_key ? 'nav-tab-active' : '';
-				echo '<a class="nav-tab ' . $active . '" href="?page=' . $this->settings_page . '&tab=' . $tab_key . '">' . $tab_caption . '</a>';
+
+				$url = add_query_arg( array(
+						'page' => rawurlencode( $this->settings_page ),
+						'tab' => rawurlencode( $tab_key ),
+					),
+					admin_url( 'options-general.php' )
+				);
+
+				echo '<a class="nav-tab ' . $active . '" href="' . esc_url( $url ) . '">' . esc_html( $tab_caption ) . '</a>';
 			}
 			echo '</h2>';
 		}
@@ -188,8 +196,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin' ) ) {
 					wp_enqueue_script( 'extending-wp-rest-api', plugin_dir_url( __FILE__ ) . '/admin-hello-world.js', 'jquery', time(), true );
 
 					// https://highlightjs.org/
-					wp_enqueue_script( 'highlight-js', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.6/highlight.min.js' );
-					wp_enqueue_style( 'highlight-js', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.6/styles/default.min.css' );
+					wp_enqueue_script( 'highlight-js', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js' );
+					wp_enqueue_style( 'highlight-js', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css' );
 
 					$data = array(
 						'endpoints' => array(
@@ -201,14 +209,6 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin' ) ) {
 
 					break;
 			}
-
-			if ( !empty( $output ) ) {
-				echo '<p class="settings-section-header">' . $output . '</p>';
-			}
-
 		}
-
-
 	}
-
 }
