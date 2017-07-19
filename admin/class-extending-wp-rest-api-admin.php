@@ -203,11 +203,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin' ) ) {
 				<form method="post" action="options.php" class="options-form">
 					<?php settings_fields( $tab ); ?>
 					<?php do_settings_sections( $tab ); ?>
-					<?php
-						if ( $this->settings_key_help !== $tab ) {
-							submit_button( __( 'Save Settings', 'extending-wp-rest-api' ), 'primary', 'submit', true );
-						}
-					?>
+					<?php submit_button( __( 'Save Settings', 'extending-wp-rest-api' ), 'primary', 'submit', true ); ?>
 				</form>
 			</div>
 			<?php
