@@ -13,6 +13,15 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			if ( extending_wp_rest_api_setting_enabled( 'add-revision-count' ) ) {
 				$this->add_revision_count_to_posts();
 			}
+		}
+
+
+		public function plugins_loaded() {
+
+			// enqueue WP_API_Settings script
+			add_action( 'wp_print_scripts', function() {
+				wp_enqueue_script( 'wp-api' );
+			} );
 
 			if ( extending_wp_rest_api_setting_enabled( 'add-featured-image' ) ) {
 				add_filter( 'rest_prepare_post', array( $this, 'add_featured_image_link' ), 10, 3 );
@@ -23,29 +32,20 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			}
 
 			if ( extending_wp_rest_api_setting_enabled( 'disable-media-endpoint' ) ) {
-				add_filter( 'rest_pre_dispatch', array( $this, 'disable_media_endpoint'), 10, 2 );
+				add_filter( 'rest_pre_dispatch', array( $this, 'disable_media_endpoint' ), 10, 2 );
 			}
 
 			if ( extending_wp_rest_api_setting_enabled( 'restrict-media-endpoint' ) ) {
-				add_filter( 'rest_pre_dispatch', array( $this, 'restrict_media_endpoint'), 10, 3 );
+				add_filter( 'rest_pre_dispatch', array( $this, 'restrict_media_endpoint' ), 10, 3 );
 			}
 
 			if ( extending_wp_rest_api_setting_enabled( 'remove-wordpress-core' ) ) {
-				add_filter( 'rest_endpoints', array( $this, 'remove_wordpress_core_endpoints'), 10, 1 );
+				add_filter( 'rest_endpoints', array( $this, 'remove_wordpress_core_endpoints' ), 10, 1 );
 			}
 
 			if ( extending_wp_rest_api_setting_enabled( 'determine-current-user' ) ) {
-				add_filter( 'determine_current_user', array( $this, 'determine_current_user') );
+				add_filter( 'determine_current_user', array( $this, 'determine_current_user' ), 50 );
 			}
-		}
-
-
-		public function plugins_loaded() {
-
-			// enqueue WP_API_Settings script
-			add_action( 'wp_print_scripts', function() {
-				wp_enqueue_script( 'wp-api' );
-			} );
 
 			// You can ignore the extending_wp_rest_api_setting_enabled()
 			// calls, it's just for the code demo.
@@ -72,7 +72,6 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			if ( extending_wp_rest_api_setting_enabled( 'force-ssl-endpoint' ) ) {
 				add_filter( 'rest_url', array( $this, 'force_https_rest_url'), 10, 4 );
 			}
-
 		}
 
 
@@ -138,7 +137,6 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			register_rest_route( $namespace, '/whoami', array(
 				'methods'              => array( WP_REST_Server::READABLE ),
 				'callback'             => array( $this, 'get_whoami' ),
-				'permission_callback'  => 'is_user_logged_in',
 			) );
 
 
@@ -315,15 +313,14 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				'context'     => array( 'view' ),
 			);
 
-			register_api_field( 'post', 'number_of_revisions', array(
+			register_rest_field( 'post', 'number_of_revisions', array(
 				'schema'          => $schema,
 				'get_callback'    => array( $this, 'get_number_of_revisions' ),
 			) );
-
 		}
 
 
-		public function get_number_of_revisions( $post, $request ) {
+		public function get_number_of_revisions( $post ) {
 			return absint( count( wp_get_post_revisions( $post->ID ) ) );
 		}
 
@@ -333,17 +330,18 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			if ( has_post_thumbnail( $post->ID ) ) {
 				$featured_image = wp_get_attachment_image_src( get_post_thumbnail_id( $post->ID ), 'full' );
 
-				$result->add_link( 'featured_image',
-					$featured_image[0],
-					array(
-						'width' => absint( $featured_image[1] ),
-						'height' => absint( $featured_image[2] )
-						)
-					);
+				if ( is_array( $featured_image ) && ! empty( $featured_image ) ) {
+					$result->add_link( 'featured_image',
+						$featured_image[0],
+						array(
+							'width' => absint( $featured_image[1] ),
+							'height' => absint( $featured_image[2] )
+							)
+						);
+				}
 			}
 
 			return $result;
-
 		}
 
 
@@ -352,7 +350,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			$response = new stdClass();
 			$response->current_user = null;
 
-			// runs the determine_current_user filter
+			// Runs the determine_current_user filter.
 			$user = wp_get_current_user();
 			if ( ! empty( $user ) ) {
 				$response->current_user                = new stdClass();
@@ -368,22 +366,20 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 		public function determine_current_user( $user_id ) {
 
-			if ( ! extending_wp_rest_api_setting_enabled( 'determine-current-user' ) ) {
-				return $user_id;
-			}
+			$uri = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_STRING );
+			$api_key = filter_input( INPUT_GET, 'api-key', FILTER_SANITIZE_STRING );
+			$login = filter_input( INPUT_GET, 'login', FILTER_SANITIZE_STRING );
 
-			if (
-				false !== stripos( $_SERVER['REQUEST_URI'], '/api-extend/whoami' ) && // make sure this is only for our whoami demo
-				'helloworld' === $_REQUEST['api-key'] && // only for a specific API key
-				! empty( $_REQUEST['login'] ) // verify login was passed
-				) {
+			// Make sure this is only for our whoami demo.
+			// Only for a specific API key.
+			// Verify login was passed.
+			if ( false !== stripos( $uri, '/api-extend/whoami' ) && 'helloworld' === $api_key && ! empty( $login ) ) {
 
 				// this request is allowed to impersonate anyone
-				$user = get_user_by( 'login', $_REQUEST['login'] );
+				$user = get_user_by( 'login', $login );
 				if ( ! empty( $user ) ) {
 					$user_id = $user->ID;
 				}
-
 			}
 
 			return $user_id;
