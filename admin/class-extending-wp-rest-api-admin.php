@@ -196,8 +196,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Admin' ) ) {
 					wp_enqueue_script( 'extending-wp-rest-api', plugin_dir_url( __FILE__ ) . '/admin-hello-world.js', 'jquery', time(), true );
 
 					// https://highlightjs.org/
-					wp_enqueue_script( 'highlight-js', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js' );
-					wp_enqueue_style( 'highlight-js', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css' );
+					wp_enqueue_script( 'extending-highlight-js', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js' );
+					wp_enqueue_style( 'extending-highlight-js', '//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css' );
 
 					$data = array(
 						'endpoints' => array(

@@ -19,18 +19,24 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			}
 
 			if ( extending_wp_rest_api_setting_enabled( 'disallow-non-ssl' ) ) {
-				add_filter( 'rest_pre_dispatch', array( $this, 'disallow_non_ssl' ), 10, 3 );
+				add_filter( 'rest_pre_dispatch', array( $this, 'disallow_non_ssl' ) );
 			}
 
 			if ( extending_wp_rest_api_setting_enabled( 'disable-media-endpoint' ) ) {
-				add_filter( 'rest_dispatch_request', array( $this, 'disable_media_endpoint'), 10, 2 );
+				add_filter( 'rest_pre_dispatch', array( $this, 'disable_media_endpoint'), 10, 2 );
+			}
+
+			if ( extending_wp_rest_api_setting_enabled( 'restrict-media-endpoint' ) ) {
+				add_filter( 'rest_pre_dispatch', array( $this, 'restrict_media_endpoint'), 10, 3 );
 			}
 
 			if ( extending_wp_rest_api_setting_enabled( 'remove-wordpress-core' ) ) {
 				add_filter( 'rest_endpoints', array( $this, 'remove_wordpress_core_endpoints'), 10, 1 );
 			}
 
-
+			if ( extending_wp_rest_api_setting_enabled( 'determine-current-user' ) ) {
+				add_filter( 'determine_current_user', array( $this, 'determine_current_user') );
+			}
 		}
 
 
@@ -41,30 +47,8 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				wp_enqueue_script( 'wp-api' );
 			} );
 
-			// you can ignore the extending_wp_rest_api_setting_enabled() calls, it's just for the code demo
-
-			// custom authenication handling
-			if ( extending_wp_rest_api_setting_enabled( 'determine-current-user' ) ) {
-				add_filter( 'determine_current_user', array( $this, 'determine_current_user') );
-			}
-
-			// restrict access to the media endpoint
-			if ( extending_wp_rest_api_setting_enabled( 'restrict-media-endpoint' ) ) {
-
-				add_action( 'init', function() {
-
-					// _add_extra_api_post_type_arguments() in the WP REST API sets this to true
-					// we'll turn it off for unauthenticated requests
-					// ideally, the GET request would have a filterable permissions check
-
-					global $wp_post_types;
-					$wp_post_types['attachment']->show_in_rest = is_user_logged_in(); // other checks could be added here
-
-
-				}, 20 );
-
-			}
-
+			// You can ignore the extending_wp_rest_api_setting_enabled()
+			// calls, it's just for the code demo.
 
 			add_filter( 'rest_url_prefix', function( $endpoint ) {
 
@@ -211,10 +195,24 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 		}
 
 
-		public function disallow_non_ssl( $response, $server, $request ) {
+		public function disallow_non_ssl( $response ) {
 
 			if ( ! is_ssl() ) {
-				$response = new WP_Error( 'rest_forbidden', __( "SSL is required to access the REST API" ), array( 'status' => 403 ) );
+				$response = new WP_Error( 'rest_forbidden', __( "SSL is required to access the REST API." ), array( 'status' => 403 ) );
+			}
+
+			return $response;
+		}
+
+		public function restrict_media_endpoint( $response, $server, $request ) {
+
+			// See if this is the media endpoint and the user is logged in.
+			if ( false !== stripos( $request->get_route(), '/wp/v2/media' ) && ! is_user_logged_in() ) {
+				$response = new WP_Error(
+					'rest_forbidden',
+					__( "Authentication is required to access the media endpoint." ),
+					array( 'status' => 403 )
+				);	
 			}
 
 			return $response;
