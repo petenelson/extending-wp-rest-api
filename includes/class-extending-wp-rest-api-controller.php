@@ -260,10 +260,11 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 
 		public function update_hello_world_permission_check( WP_REST_Request $request ) {
-			if ( ! current_user_can( 'manage_options' ) ) {
+			$cap = 'manage_options';
+			if ( ! current_user_can( $cap ) ) {
 				// can return false or a custom WP_Error
 				return new WP_Error( 'rest_forbidden',
-					sprintf( 'current user must have manage_options permissions', $value ), array( 'status' => 403 ) );
+					sprintf( 'current user must have %s permissions', $cap ), array( 'status' => 403 ) );
 			} else {
 				return true;
 			}
