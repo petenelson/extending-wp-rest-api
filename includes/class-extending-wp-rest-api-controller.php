@@ -13,24 +13,6 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			if ( extending_wp_rest_api_setting_enabled( 'add-revision-count' ) ) {
 				$this->add_revision_count_to_posts();
 			}
-
-			if ( extending_wp_rest_api_setting_enabled( 'add-featured-image' ) ) {
-				add_filter( 'rest_prepare_post', array( $this, 'add_featured_image_link' ), 10, 3 );
-			}
-
-			if ( extending_wp_rest_api_setting_enabled( 'disallow-non-ssl' ) ) {
-				add_filter( 'rest_pre_dispatch', array( $this, 'disallow_non_ssl' ), 10, 3 );
-			}
-
-			if ( extending_wp_rest_api_setting_enabled( 'disable-media-endpoint' ) ) {
-				add_filter( 'rest_dispatch_request', array( $this, 'disable_media_endpoint'), 10, 2 );
-			}
-
-			if ( extending_wp_rest_api_setting_enabled( 'remove-wordpress-core' ) ) {
-				add_filter( 'rest_endpoints', array( $this, 'remove_wordpress_core_endpoints'), 10, 1 );
-			}
-
-
 		}
 
 
@@ -41,30 +23,32 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				wp_enqueue_script( 'wp-api' );
 			} );
 
-			// you can ignore the extending_wp_rest_api_setting_enabled() calls, it's just for the code demo
-
-			// custom authenication handling
-			if ( extending_wp_rest_api_setting_enabled( 'determine-current-user' ) ) {
-				add_filter( 'determine_current_user', array( $this, 'determine_current_user') );
+			if ( extending_wp_rest_api_setting_enabled( 'add-featured-image' ) ) {
+				add_filter( 'rest_prepare_post', array( $this, 'add_featured_image_link' ), 10, 3 );
 			}
 
-			// restrict access to the media endpoint
+			if ( extending_wp_rest_api_setting_enabled( 'disallow-non-ssl' ) ) {
+				add_filter( 'rest_pre_dispatch', array( $this, 'disallow_non_ssl' ) );
+			}
+
+			if ( extending_wp_rest_api_setting_enabled( 'disable-media-endpoint' ) ) {
+				add_filter( 'rest_dispatch_request', array( $this, 'disable_media_endpoint' ), 10, 2 );
+			}
+
 			if ( extending_wp_rest_api_setting_enabled( 'restrict-media-endpoint' ) ) {
-
-				add_action( 'init', function() {
-
-					// _add_extra_api_post_type_arguments() in the WP REST API sets this to true
-					// we'll turn it off for unauthenticated requests
-					// ideally, the GET request would have a filterable permissions check
-
-					global $wp_post_types;
-					$wp_post_types['attachment']->show_in_rest = is_user_logged_in(); // other checks could be added here
-
-
-				}, 20 );
-
+				add_filter( 'rest_pre_dispatch', array( $this, 'restrict_media_endpoint' ), 10, 3 );
 			}
 
+			if ( extending_wp_rest_api_setting_enabled( 'remove-wordpress-core' ) ) {
+				add_filter( 'rest_endpoints', array( $this, 'remove_wordpress_core_endpoints' ), 10, 1 );
+			}
+
+			if ( extending_wp_rest_api_setting_enabled( 'determine-current-user' ) ) {
+				add_filter( 'determine_current_user', array( $this, 'determine_current_user' ), 50 );
+			}
+
+			// You can ignore the extending_wp_rest_api_setting_enabled()
+			// calls, it's just for the code demo.
 
 			add_filter( 'rest_url_prefix', function( $endpoint ) {
 
@@ -88,7 +72,6 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			if ( extending_wp_rest_api_setting_enabled( 'force-ssl-endpoint' ) ) {
 				add_filter( 'rest_url', array( $this, 'force_https_rest_url'), 10, 4 );
 			}
-
 		}
 
 
@@ -154,7 +137,6 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			register_rest_route( $namespace, '/whoami', array(
 				'methods'              => array( WP_REST_Server::READABLE ),
 				'callback'             => array( $this, 'get_whoami' ),
-				'permission_callback'  => 'is_user_logged_in',
 			) );
 
 
@@ -211,10 +193,24 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 		}
 
 
-		public function disallow_non_ssl( $response, $server, $request ) {
+		public function disallow_non_ssl( $response ) {
 
 			if ( ! is_ssl() ) {
-				$response = new WP_Error( 'rest_forbidden', __( "SSL is required to access the REST API" ), array( 'status' => 403 ) );
+				$response = new WP_Error( 'rest_forbidden', __( "SSL is required to access the REST API." ), array( 'status' => 403 ) );
+			}
+
+			return $response;
+		}
+
+		public function restrict_media_endpoint( $response, $server, $request ) {
+
+			// See if this is the media endpoint and the user is logged in.
+			if ( false !== stripos( $request->get_route(), '/wp/v2/media' ) && ! is_user_logged_in() ) {
+				$response = new WP_Error(
+					'rest_forbidden',
+					__( "Authentication is required to access the media endpoint." ),
+					array( 'status' => 403 )
+				);	
 			}
 
 			return $response;
@@ -246,9 +242,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			$response->some_html  = '<strong>Hello</strong> <em>World</em>';
 
-
 			return rest_ensure_response( $response );
-
 		}
 
 
@@ -259,15 +253,15 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			$response->my_number  = absint( get_option( '_extending_my_number' ) );
 
 			return rest_ensure_response( $response );
-
 		}
 
 
 		public function update_hello_world_permission_check( WP_REST_Request $request ) {
-			if ( ! current_user_can( 'manage_options' ) ) {
+			$cap = 'manage_options';
+			if ( ! current_user_can( $cap ) ) {
 				// can return false or a custom WP_Error
 				return new WP_Error( 'rest_forbidden',
-					sprintf( 'current user must have manage_options permissions', $value ), array( 'status' => 403 ) );
+					sprintf( 'current user must have %s permissions', $cap ), array( 'status' => 403 ) );
 			} else {
 				return true;
 			}
@@ -317,15 +311,14 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 				'context'     => array( 'view' ),
 			);
 
-			register_api_field( 'post', 'number_of_revisions', array(
+			register_rest_field( 'post', 'number_of_revisions', array(
 				'schema'          => $schema,
 				'get_callback'    => array( $this, 'get_number_of_revisions' ),
 			) );
-
 		}
 
 
-		public function get_number_of_revisions( $post, $request ) {
+		public function get_number_of_revisions( $post ) {
 			return absint( count( wp_get_post_revisions( $post->ID ) ) );
 		}
 
@@ -335,17 +328,18 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			if ( has_post_thumbnail( $post->ID ) ) {
 				$featured_image = wp_get_attachment_image_src( get_post_thumbnail_id( $post->ID ), 'full' );
 
-				$result->add_link( 'featured_image',
-					$featured_image[0],
-					array(
-						'width' => absint( $featured_image[1] ),
-						'height' => absint( $featured_image[2] )
-						)
-					);
+				if ( is_array( $featured_image ) && ! empty( $featured_image ) ) {
+					$result->add_link( 'featured_image',
+						$featured_image[0],
+						array(
+							'width' => absint( $featured_image[1] ),
+							'height' => absint( $featured_image[2] )
+							)
+						);
+				}
 			}
 
 			return $result;
-
 		}
 
 
@@ -354,7 +348,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			$response = new stdClass();
 			$response->current_user = null;
 
-			// runs the determine_current_user filter
+			// Runs the determine_current_user filter.
 			$user = wp_get_current_user();
 			if ( ! empty( $user ) ) {
 				$response->current_user                = new stdClass();
@@ -370,22 +364,20 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 		public function determine_current_user( $user_id ) {
 
-			if ( ! extending_wp_rest_api_setting_enabled( 'determine-current-user' ) ) {
-				return $user_id;
-			}
+			$uri = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_STRING );
+			$api_key = filter_input( INPUT_GET, 'api-key', FILTER_SANITIZE_STRING );
+			$login = filter_input( INPUT_GET, 'login', FILTER_SANITIZE_STRING );
 
-			if (
-				stripos( $_SERVER['REQUEST_URI'], '/api-extend/whoami' ) > 0 && // make sure this is only for our whoami demo
-				'helloworld' === $_REQUEST['api-key'] && // only for a specific API key
-				! empty( $_REQUEST['login'] ) // verify login was passed
-				) {
+			// Make sure this is only for our whoami demo.
+			// Only for a specific API key.
+			// Verify login was passed.
+			if ( false !== stripos( $uri, '/api-extend/whoami' ) && 'helloworld' === $api_key && ! empty( $login ) ) {
 
 				// this request is allowed to impersonate anyone
-				$user = get_user_by( 'login', $_REQUEST['login'] );
+				$user = get_user_by( 'login', $login );
 				if ( ! empty( $user ) ) {
 					$user_id = $user->ID;
 				}
-
 			}
 
 			return $user_id;
