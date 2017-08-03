@@ -32,7 +32,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			}
 
 			if ( extending_wp_rest_api_setting_enabled( 'disable-media-endpoint' ) ) {
-				add_filter( 'rest_pre_dispatch', array( $this, 'disable_media_endpoint' ), 10, 2 );
+				add_filter( 'rest_dispatch_request', array( $this, 'disable_media_endpoint' ), 10, 2 );
 			}
 
 			if ( extending_wp_rest_api_setting_enabled( 'restrict-media-endpoint' ) ) {
@@ -242,9 +242,7 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 
 			$response->some_html  = '<strong>Hello</strong> <em>World</em>';
 
-
 			return rest_ensure_response( $response );
-
 		}
 
 
@@ -255,7 +253,6 @@ if ( ! class_exists( 'Extending_WP_REST_API_Controller' ) ) {
 			$response->my_number  = absint( get_option( '_extending_my_number' ) );
 
 			return rest_ensure_response( $response );
-
 		}
 
 
